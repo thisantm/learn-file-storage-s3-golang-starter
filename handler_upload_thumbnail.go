@@ -1,10 +1,12 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
 	"github.com/google/uuid"
@@ -47,20 +49,37 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	}
 	defer file.Close()
 
-	mediaType := fileHeader.Header.Get("Content-Type")
-	if mediaType == "" {
+	contentType := fileHeader.Header.Get("Content-Type")
+	if contentType == "" {
 		respondWithError(w, http.StatusBadRequest, "missing Content-Type for thumbnail", nil)
 		return
 	}
 
-	imageByte, err := io.ReadAll(file)
+	mediaType, _, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "failed to read file", err)
+		respondWithError(w, http.StatusBadRequest, "failed to parse media type", nil)
+		return
+	}
+	if mediaType != "image/jpeg" && mediaType != "image/png" {
+		respondWithError(w, http.StatusBadRequest, "invalid Content-Type for thumbnail", nil)
 		return
 	}
 
-	encodedImage := base64.StdEncoding.EncodeToString(imageByte)
-	dataUrl := fmt.Sprintf("data:%s;base64,%s", mediaType, encodedImage)
+	mediaTypeSplit := strings.Split(mediaType, "/")
+	imageType := mediaTypeSplit[1]
+
+	fileSaveTo := fmt.Sprintf("%s/%v.%s", cfg.assetsRoot, videoID, imageType)
+	localFile, err := os.Create(fileSaveTo)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "failed to save image", err)
+		return
+	}
+
+	_, err = io.Copy(localFile, file)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "failed to save image", err)
+		return
+	}
 
 	video, err := cfg.db.GetVideo(videoID)
 	if err != nil {
@@ -72,7 +91,8 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	video.ThumbnailURL = &dataUrl
+	imageURL := fmt.Sprintf("http://localhost:%s/assets/%s.%s", cfg.port, videoID, imageType)
+	video.ThumbnailURL = &imageURL
 
 	err = cfg.db.UpdateVideo(video)
 	if err != nil {
