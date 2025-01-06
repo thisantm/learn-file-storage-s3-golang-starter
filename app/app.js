@@ -21,7 +21,7 @@ document.getElementById('login-form').addEventListener('submit', async (event) =
   await login();
 });
 
-async function createVideoDraft() {
+async function createVideoDraft () {
   const title = document.getElementById('video-title').value;
   const description = document.getElementById('video-description').value;
 
@@ -49,7 +49,7 @@ async function createVideoDraft() {
   }
 }
 
-async function login() {
+async function login () {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
 
@@ -79,7 +79,7 @@ async function login() {
   }
 }
 
-async function signup() {
+async function signup () {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
 
@@ -102,13 +102,13 @@ async function signup() {
   }
 }
 
-function logout() {
+function logout () {
   localStorage.removeItem('token');
   document.getElementById('auth-section').style.display = 'block';
   document.getElementById('video-section').style.display = 'none';
 }
 
-function setUploadButtonState(uploading, selector) {
+function setUploadButtonState (uploading, selector) {
   const uploadBtn = document.getElementById(selector);
   if (uploading) {
     uploadBtn.textContent = 'Uploading...';
@@ -119,7 +119,7 @@ function setUploadButtonState(uploading, selector) {
   uploadBtn.disabled = false;
 }
 
-async function uploadThumbnail(videoID) {
+async function uploadThumbnail (videoID) {
   const thumbnailFile = document.getElementById('thumbnail').files[0];
   if (!thumbnailFile) return;
 
@@ -152,7 +152,7 @@ async function uploadThumbnail(videoID) {
   setUploadButtonState(false, uploadBtnSelector);
 }
 
-async function uploadVideoFile(videoID) {
+async function uploadVideoFile (videoID) {
   const videoFile = document.getElementById('video-file').files[0];
   if (!videoFile) return;
 
@@ -186,7 +186,7 @@ async function uploadVideoFile(videoID) {
 
 const videoStateHandler = createVideoStateHandler();
 
-async function getVideos() {
+async function getVideos () {
   try {
     const res = await fetch('/api/videos', {
       method: 'GET',
@@ -213,10 +213,10 @@ async function getVideos() {
   }
 }
 
-function createVideoStateHandler() {
+function createVideoStateHandler () {
   let currentVideoID = null;
 
-  return async function handleVideoClick(videoID) {
+  return async function handleVideoClick (videoID) {
     if (currentVideoID !== videoID) {
       currentVideoID = videoID;
 
@@ -229,7 +229,7 @@ function createVideoStateHandler() {
   };
 }
 
-async function getVideo(videoID) {
+async function getVideo (videoID) {
   try {
     const res = await fetch(`/api/videos/${videoID}`, {
       method: 'GET',
@@ -250,7 +250,7 @@ async function getVideo(videoID) {
 
 let currentVideo = null;
 
-function viewVideo(video) {
+function viewVideo (video) {
   currentVideo = video;
   document.getElementById('video-display').style.display = 'block';
   document.getElementById('video-title-display').textContent = video.title;
@@ -261,7 +261,7 @@ function viewVideo(video) {
     thumbnailImg.style.display = 'none';
   } else {
     thumbnailImg.style.display = 'block';
-    thumbnailImg.src = video.thumbnail_url;
+    thumbnailImg.src = `${video.thumbnail_url}?time=${Date.now()}`;
   }
 
   const videoPlayer = document.getElementById('video-player');
@@ -276,7 +276,7 @@ function viewVideo(video) {
   }
 }
 
-async function deleteVideo() {
+async function deleteVideo () {
   if (!currentVideo) {
     alert('No video selected for deletion.');
     return;
