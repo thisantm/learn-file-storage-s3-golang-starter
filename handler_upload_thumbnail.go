@@ -1,14 +1,11 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
 	"github.com/google/uuid"
@@ -67,22 +64,19 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	mediaTypeSplit := strings.Split(mediaType, "/")
-	imageType := mediaTypeSplit[1]
-	assetPath := make([]byte, 32)
-	_, err = rand.Read(assetPath)
-	assetPathEncoded := base64.RawURLEncoding.EncodeToString(assetPath)
+	assetPath, err := createAssetPath(mediaType)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "failed to create path name", err)
 		return
 	}
 
-	fileSaveTo := fmt.Sprintf("%s/%v.%s", cfg.assetsRoot, assetPathEncoded, imageType)
+	fileSaveTo := fmt.Sprintf("%s/%s", cfg.assetsRoot, assetPath)
 	localFile, err := os.Create(fileSaveTo)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "failed to save image", err)
+		respondWithError(w, http.StatusInternalServerError, "failed to create image on server", err)
 		return
 	}
+	defer localFile.Close()
 
 	_, err = io.Copy(localFile, file)
 	if err != nil {
@@ -100,7 +94,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	imageURL := fmt.Sprintf("http://localhost:%s/assets/%s.%s", cfg.port, assetPathEncoded, imageType)
+	imageURL := fmt.Sprintf("http://localhost:%s/assets/%s", cfg.port, assetPath)
 	video.ThumbnailURL = &imageURL
 
 	err = cfg.db.UpdateVideo(video)
